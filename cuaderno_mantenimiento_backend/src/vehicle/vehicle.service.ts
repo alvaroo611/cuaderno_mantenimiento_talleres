@@ -67,7 +67,7 @@ export class VehicleService {
   }
   
  async findByClientId(clientId: string): Promise<Vehicle[]> {
-  console.log('[findByClientId] 🔍 Buscando vehículos para clientId:', clientId);
+ 
 
   const vehicles = await this.vehicleRepository.find({
     where: {
@@ -78,14 +78,14 @@ export class VehicleService {
     relations: ['client'],
   });
 
-  console.log('[findByClientId] 📦 Resultado de la búsqueda:', vehicles);
+
 
   if (vehicles.length === 0) {
-    console.log('[findByClientId] ⚠️ No se encontraron vehículos para este cliente.');
+   
     throw new NotFoundException('No vehicles found for this client.');
   }
 
-  console.log('[findByClientId] ✅ Vehículos encontrados:', vehicles.length);
+ 
   return vehicles;
 }
 

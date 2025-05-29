@@ -4,6 +4,7 @@ import { Not, Repository } from 'typeorm';
 import { InterventionDetails } from './entities/intervention_details.entity';
 import { CreateInterventionDetailsDto } from './dto/create-intervention_details.dto';
 import { Intervention } from 'src/intervention/entities/intervention.entity';
+import { Vehicle } from 'src/vehicle/entities/vehicle.entity';
 
 
 @Injectable()
@@ -13,6 +14,7 @@ export class InterventionDetailsService {
     private readonly interventionDetailsRepository: Repository<InterventionDetails>,
     @InjectRepository(Intervention)
     private readonly interventionRepository: Repository<Intervention>,
+    
   ) {}
 
   async create(dto: CreateInterventionDetailsDto): Promise<InterventionDetails> {

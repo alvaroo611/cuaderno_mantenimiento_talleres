@@ -5,42 +5,71 @@ import { Intervention } from './entities/intervention.entity';
 import { CreateInterventionDto } from './dto/create-intervention.dto';
 import { UpdateInterventionDto } from './dto/update-intervention.dto';
 import { Vehicle } from 'src/vehicle/entities/vehicle.entity';
+import { InterventionDetails } from 'src/intervention_details/entities/intervention_details.entity';
 
 @Injectable()
 export class InterventionService {
   constructor(
     @InjectRepository(Intervention)
     private readonly interventionRepository: Repository<Intervention>,
+     @InjectRepository(InterventionDetails)
+    private readonly interventionDetailRepository: Repository<InterventionDetails>,
     @InjectRepository(Vehicle)
     private readonly vehicleRepository: Repository<Vehicle>,
   ) {}
 
   // Método para crear una intervención
-  async create(createInterventionDto: CreateInterventionDto){
-    const { vehicle_id } = createInterventionDto;
+  async create(createInterventionDto: CreateInterventionDto) {
+  console.log('➡️ Iniciando creación de intervención...');
+  console.log('📦 DTO recibido:', createInterventionDto);
 
-    // Verifica si el vehículo existe
-    const vehicle = await this.vehicleRepository.findOne({ where: { id_vehicle: vehicle_id } });
-    if (!vehicle) {
-      throw new NotFoundException('Vehicle not found');
-    }
+  const { vehicle_id } = createInterventionDto;
+  console.log('🔍 Buscando vehículo con ID:', vehicle_id);
 
-    // Crea y guarda la intervención
-    const intervention = this.interventionRepository.create({ ...createInterventionDto, vehicle });
-    const savedIntervention = await this.interventionRepository.save(intervention);
+  // Verifica si el vehículo existe
+  const vehicle = await this.vehicleRepository.findOne({ where: { id_vehicle: vehicle_id } });
+  console.log('🚗 Vehículo encontrado:', vehicle);
 
-    // Mensaje de éxito al crear
-    return {
-      message: 'Intervention successfully created',
-      intervention: savedIntervention,
-    };
+  if (!vehicle) {
+    console.log('❌ Vehículo no encontrado');
+    throw new NotFoundException('Vehicle not found');
   }
+
+  // Crea y guarda la intervención
+  const intervention = this.interventionRepository.create({ ...createInterventionDto, vehicle });
+  console.log('🛠️ Intervención creada (sin guardar):', intervention);
+
+  const savedIntervention = await this.interventionRepository.save(intervention);
+  console.log('💾 Intervención guardada:', savedIntervention);
+
+  // Mensaje de éxito al crear
+  console.log('✅ Intervención creada con éxito');
+
+  return {
+    message: 'Intervention successfully created',
+    intervention: savedIntervention,
+  };
+}
+
 
   // Método para obtener todas las intervenciones
   async findAll(): Promise<Intervention[]> {
     const interventions = await this.interventionRepository.find({ relations: ['vehicle','details'] });
     return interventions ;
   }
+  async findByVehicleId(vehicleId: string): Promise<Intervention[]> {
+  const vehicle = await this.vehicleRepository.findOne({ where: { id_vehicle: vehicleId } });
+  if (!vehicle) {
+    throw new NotFoundException('Vehicle not found');
+  }
+
+  const interventions = await this.interventionRepository.find({
+    where: { vehicle: { id_vehicle: vehicleId } },
+    relations: ['vehicle', 'details'],  // incluir relaciones necesarias
+  });
+
+  return interventions;
+}
 
   // Método para obtener una intervención específica
   async findOne(id: string): Promise<Intervention > {
@@ -73,12 +102,18 @@ export class InterventionService {
 
   // Método para eliminar una intervención
   async remove(id: string): Promise<{ message: string }> {
-    const result = await this.interventionRepository.delete(id);
-
-    if (result.affected === 0) {
+    // Buscar intervención para comprobar que existe
+    const intervention = await this.interventionRepository.findOne({ where: { id_intervencion: id } });
+    if (!intervention) {
       throw new NotFoundException('Intervention not found');
     }
 
-    return { message: 'Intervention successfully deleted' };
+    // Eliminar todos los detalles asociados a la intervención
+    await this.interventionDetailRepository.delete({ intervention: { id_intervencion: id } });
+
+    // Eliminar la intervención
+    await this.interventionRepository.delete(id);
+
+    return { message: 'Intervention and its details successfully deleted' };
   }
 }

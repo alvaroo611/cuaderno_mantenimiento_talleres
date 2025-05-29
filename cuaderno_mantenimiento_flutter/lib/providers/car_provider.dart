@@ -1,27 +1,26 @@
 // providers/car_provider.dart
 
+import 'package:cuaderno_mantenimiento_flutter/infrastructure/dtos/create-vehicle-dto.dart';
 import 'package:xml/xml.dart' as xml;
 import 'package:cuaderno_mantenimiento_flutter/infrastructure/models/car.dart';
 import 'package:dio/dio.dart';
 
 class CarProvider {
   final Dio _dio = Dio(BaseOptions(baseUrl: 'http://localhost:3000/'));
-
+  final Map<String, String?> _imageCache = {};
   Future<List<Car>> fetchCarsByClientId(String clientId) async {
-    print('[fetchCarsByClientId] 🔍 Iniciando búsqueda de coches para el cliente con ID: $clientId');
+   
 
     try {
       final response = await _dio.get('vehicle/client/$clientId');
-      print('[fetchCarsByClientId] ✅ Respuesta recibida con status code: ${response.statusCode}');
-      print('[fetchCarsByClientId] 📦 Datos recibidos: ${response.data}');
+ 
 
       final List data = response.data;
       final cars = data.map((json) {
-        print('[fetchCarsByClientId] 🛠️ Mapeando coche: $json');
+       
         return Car.fromJson(json);
       }).toList();
 
-      print('[fetchCarsByClientId] 🚗 Lista de coches creada con éxito. Total: ${cars.length}');
       return cars;
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
@@ -30,32 +29,78 @@ class CarProvider {
         throw Exception('Error al obtener vehículos: ${e.message}');
       }
     } catch (e) {
-      print('[fetchCarsByClientId] ❌ Error al obtener vehículos: $e');
+      
       throw Exception('Error al obtener vehículos: $e');
     }
   }
 
-
-  Future<String?> fetchCarImageUrl(String brand, String model) async {
-    final searchTerm = '$brand $model'.replaceAll(' ', '+');
-    final url = 'http://www.carimagery.com/api.asmx/GetImageUrl?searchTerm=$searchTerm';
-
-    try {
-      final response = await Dio().get<String>(url,
-        options: Options(responseType: ResponseType.plain)); // devuelve XML como texto plano
-      final rawXml = response.data;
-      if (rawXml != null) {
-        final document = xml.XmlDocument.parse(rawXml);
-        final stringElement = document.findAllElements('string').first;
-        final imageUrl = stringElement.text;
-        return imageUrl;
+    String _normalize(String text) {
+      // Quita tildes básicas y espacios
+      final withOutAccents = text
+          .toLowerCase()
+          .replaceAll('á', 'a')
+          .replaceAll('é', 'e')
+          .replaceAll('í', 'i')
+          .replaceAll('ó', 'o')
+          .replaceAll('ú', 'u')
+          .replaceAll('ü', 'u')
+          .replaceAll(' ', '');
+      return withOutAccents;
+    }
+    Future<String?> fetchCarImageUrl(String brand, String model) async {
+      final key = '${brand.toLowerCase()} ${model.toLowerCase()}';
+      // Si está en caché, devolverlo directamente
+      if (_imageCache.containsKey(key)) {
+        
+        return _imageCache[key];
       }
 
-    } catch (e) {
-      print('❌ Error al obtener imagen de $brand $model: $e');
+      final searchTerm = '$brand $model'.replaceAll(' ', '+');
+      final url = 'http://www.carimagery.com/api.asmx/GetImageUrl?searchTerm=$searchTerm';
+
+      try {
+        final response = await Dio().get<String>(url,
+          options: Options(responseType: ResponseType.plain)); // XML plano
+        final rawXml = response.data;
+        if (rawXml != null) {
+          final document = xml.XmlDocument.parse(rawXml);
+          final stringElement = document.findAllElements('string').first;
+          final imageUrl = stringElement.text;
+
+          // Guardar en caché
+          _imageCache[key] = imageUrl;
+
+          return imageUrl;
+        }
+      } catch (e) {
+        throw ArgumentError();
+      }
+
+      // En caso de error, guardar null para evitar repetir peticiones fallidas
+      _imageCache[key] = null;
+      return null;
     }
-    return null;
+
+  Future<void> updateCar(String carId, CreateVehicleDto updatedCar) async {
+  final url = 'vehicle/$carId';
+  final data = updatedCar.toJson();
+
+
+
+  try {
+    final response = await _dio.patch(url, data: data);
+
+  
+    if (response.statusCode != 200) {
+      throw Exception('Error al actualizar el coche');
+    }
+  } catch (e) {
+ 
+   
   }
+}
+
+
 
   Future<void> deleteCar(String carId) async {
     try {

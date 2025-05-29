@@ -4,6 +4,8 @@ import 'package:cuaderno_mantenimiento_flutter/infrastructure/models/person.dart
 import 'package:cuaderno_mantenimiento_flutter/screens/dashboards/dashboard_admin/dashboard_admin.dart';
 import 'package:cuaderno_mantenimiento_flutter/screens/dashboards/dashboard_admin/sections/clients_managment/client_management_screen.dart';
 import 'package:cuaderno_mantenimiento_flutter/screens/dashboards/dashboard_admin/sections/clients_managment/vehicles_managment/client_cars_screen.dart';
+import 'package:cuaderno_mantenimiento_flutter/screens/dashboards/dashboard_admin/sections/clients_managment/vehicles_managment/intervention_managment/create_intervention_screen.dart';
+import 'package:cuaderno_mantenimiento_flutter/screens/dashboards/dashboard_admin/sections/clients_managment/vehicles_managment/intervention_managment/intervention_managment_screen.dart';
 import 'package:cuaderno_mantenimiento_flutter/screens/dashboards/dashboard_client/dashboard_client.dart';
 import 'package:cuaderno_mantenimiento_flutter/screens/login_screen.dart';
 import 'package:cuaderno_mantenimiento_flutter/screens/splash_screen.dart';
@@ -55,7 +57,23 @@ final GoRouter appRouter = GoRouter(
         return ClientCarsScreen(clientId: clientId);
       },
     ),
-
+    GoRoute(
+      path: '/intervention/:carId',
+      name: 'interventionScreen',
+      builder: (context, state) {
+        final carId = state.pathParameters['carId']!;
+        return InterventionManagementScreen(carId: carId);
+      },
+    ),
+    GoRoute(
+      path: '/intervention-details/:carId/:interventionId',
+      name: 'interventionDetails',
+      builder: (context, state) {
+        final carId = state.pathParameters['carId']!;
+        final interventionId = state.pathParameters['interventionId']!;
+        return CreateInterventionScreen(carId: carId, interventionId: interventionId);
+      },
+    ),
 
   
   ],

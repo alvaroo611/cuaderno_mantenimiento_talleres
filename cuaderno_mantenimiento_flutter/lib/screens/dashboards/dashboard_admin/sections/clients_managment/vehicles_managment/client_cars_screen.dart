@@ -20,6 +20,7 @@ class _ClientCarsScreenState extends State<ClientCarsScreen> {
   final secondaryColor = const Color(0xFFB64B3F);
   final TextEditingController _searchController = TextEditingController();
 
+
   List<Car> cars = [];
   bool isLoading = true;
   String _searchQuery = '';
@@ -40,6 +41,7 @@ class _ClientCarsScreenState extends State<ClientCarsScreen> {
       final model = car.model;
 
       if (brand.isNotEmpty && model.isNotEmpty) {
+        // Ahora fetchCarImageUrl ya usa caché internamente
         final imageUrl = await provider.fetchCarImageUrl(brand, model);
         car.imageUrl = imageUrl;
       } else {
@@ -48,14 +50,13 @@ class _ClientCarsScreenState extends State<ClientCarsScreen> {
     }
 
     setState(() {
-      cars = result; // puede estar vacío, y está bien
+      cars = result; // lista con imágenes asignadas (o null si no hay)
       isLoading = false;
     });
   } catch (e) {
-    print('Error al cargar coches: $e');
+  
 
     if (e.toString().contains('No se encontraron coches')) {
-      // Si es 404, simplemente mostramos lista vacía
       setState(() {
         cars = [];
         isLoading = false;
@@ -74,6 +75,7 @@ class _ClientCarsScreenState extends State<ClientCarsScreen> {
     }
   }
 }
+
 
 
 
@@ -168,17 +170,17 @@ class _ClientCarsScreenState extends State<ClientCarsScreen> {
         trailing: Wrap(
           spacing: 8,
           children: [
-            IconButton(
-              icon: const Icon(Icons.image, color: Colors.teal),
-              tooltip: 'Ver Imagen',
-              onPressed: () {
-                _showCarImageDialog(car.imageUrl);
-              },
-            ),
+             IconButton(
+                icon: const Icon(Icons.history, color: Colors.teal),
+                tooltip: 'Ver intervenciones realizadas',
+                onPressed: () {
+                  context.push('/intervention/${car.id}');
+                },
+              ),
             IconButton(
               icon: const Icon(Icons.edit, color: Colors.blue),
               onPressed: () {
-                // Mostrar modal o navegación a editar coche
+                _showEditCarDialog(car);
               },
             ),
             IconButton(
@@ -228,7 +230,7 @@ class _ClientCarsScreenState extends State<ClientCarsScreen> {
               Navigator.pop(context);
               try {
                 final provider = CarProvider();
-                print('id'+car.id);
+              
                 await provider.deleteCar(car.id);
                 setState(() {
                   cars.removeWhere((c) => c.id == car.id);
@@ -350,6 +352,157 @@ void _showCreateCarDialog() {
             ),
           ),
         ],
+      );
+    },
+  );
+}
+void _showEditCarDialog(Car car) {
+  final brandController = TextEditingController(text: car.brand);
+  final modelController = TextEditingController(text: car.model);
+  final vinController = TextEditingController(text: car.bastidor ?? '');
+  final engineTypeController = TextEditingController(text: car.tipoMotor ?? '');
+  final plateController = TextEditingController(text: car.plate);
+  final nextRevisionDateController = TextEditingController(text: car.proximaRevisionFecha ?? '');
+  final estimatedMileageController = TextEditingController(text: car.kilometrajeEstimadoRevision?.toString() ?? '');
+
+  bool isSaving = false;
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      final screenWidth = MediaQuery.of(context).size.width;
+      double dialogWidth = screenWidth < 600 ? double.infinity : 500;
+
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text(
+              'Editar Vehículo',
+              style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
+            ),
+            content: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: dialogWidth),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildTextField(brandController, 'Marca'),
+                    _buildTextField(modelController, 'Modelo'),
+                    _buildTextField(vinController, 'Bastidor'),
+                    _buildTextField(engineTypeController, 'Tipo de motor'),
+                    _buildTextField(plateController, 'Matrícula'),
+                    _buildTextField(nextRevisionDateController, 'Próxima revisión (YYYY-MM-DD)', keyboardType: TextInputType.datetime),
+                    _buildTextField(estimatedMileageController, 'Kilometraje estimado revisión', keyboardType: TextInputType.number),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isSaving ? null : () {
+                  // Liberar controladores antes de cerrar:
+                  brandController.dispose();
+                  modelController.dispose();
+                  vinController.dispose();
+                  engineTypeController.dispose();
+                  plateController.dispose();
+                  nextRevisionDateController.dispose();
+                  estimatedMileageController.dispose();
+                  Navigator.pop(context);
+                },
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
+                onPressed: isSaving ? null : () async {
+                  if (brandController.text.isEmpty ||
+                      modelController.text.isEmpty ||
+                      vinController.text.isEmpty ||
+                      engineTypeController.text.isEmpty ||
+                      plateController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Por favor, completa los campos obligatorios')),
+                    );
+                    return;
+                  }
+
+                  final revisionDate = nextRevisionDateController.text.trim();
+                  if (revisionDate.isNotEmpty) {
+                    try {
+                      DateTime.parse(revisionDate);
+                    } catch (_) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Formato de fecha no válido (usar YYYY-MM-DD)')),
+                      );
+                      return;
+                    }
+                  }
+
+                  int? estimatedMileage;
+                  if (estimatedMileageController.text.trim().isNotEmpty) {
+                    estimatedMileage = int.tryParse(estimatedMileageController.text.trim());
+                    if (estimatedMileage == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Kilometraje estimado no válido')),
+                      );
+                      return;
+                    }
+                  }
+
+                  setState(() => isSaving = true);
+
+                  final updatedCar = CreateVehicleDto(
+                    marca: brandController.text.trim(),
+                    modelo: modelController.text.trim(),
+                    bastidor: vinController.text.trim(),
+                    tipoMotor: engineTypeController.text.trim(),
+                    matricula: plateController.text.trim(),
+                    proximaRevisionFecha: revisionDate.isNotEmpty ? revisionDate : null,
+                    kilometrajeEstimadoRevision: estimatedMileage,
+                    clientId: widget.clientId,
+                  );
+
+                  try {
+                    final provider = CarProvider();
+                    await provider.updateCar(car.id, updatedCar);
+                    // Liberar controladores antes de cerrar:
+                    brandController.dispose();
+                    modelController.dispose();
+                    vinController.dispose();
+                    engineTypeController.dispose();
+                    plateController.dispose();
+                    nextRevisionDateController.dispose();
+                    estimatedMileageController.dispose();
+                    Navigator.pop(context);
+                    await _loadCars();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Coche actualizado correctamente')),
+                    );
+                  } catch (e) {
+                    setState(() => isSaving = false);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error al actualizar coche: $e')),
+                    );
+                  }
+                },
+                child: isSaving
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    :  const Text(
+                        'Crear',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+              ),
+            ],
+          );
+        },
       );
     },
   );

@@ -3,14 +3,14 @@ class Intervention {
   final String fecha;
   final int kilometraje;
   final String tipoIntervencion;
-  final String observaciones;
+  final String? observaciones;
 
   Intervention({
     required this.idIntervencion,
     required this.fecha,
     required this.kilometraje,
     required this.tipoIntervencion,
-    required this.observaciones,
+    this.observaciones,
   });
 
   factory Intervention.fromJson(Map<String, dynamic> json) {
@@ -21,5 +21,15 @@ class Intervention {
       tipoIntervencion: json['tipo_intervencion'],
       observaciones: json['observaciones'],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id_intervencion': idIntervencion,
+      'fecha': fecha,
+      'kilometraje': kilometraje,
+      'tipo_intervencion': tipoIntervencion,
+      'observaciones': observaciones,
+    };
   }
 }

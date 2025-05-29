@@ -6,6 +6,12 @@ class Car {
   final int year;
   String? imageUrl;
 
+  // Nuevos campos opcionales
+  final String? bastidor;
+  final String? tipoMotor;
+  final String? proximaRevisionFecha;
+  final int? kilometrajeEstimadoRevision;
+
   Car({
     required this.id,
     required this.plate,
@@ -13,7 +19,26 @@ class Car {
     required this.model,
     required this.year,
     this.imageUrl,
+    this.bastidor,
+    this.tipoMotor,
+    this.proximaRevisionFecha,
+    this.kilometrajeEstimadoRevision,
   });
+
+  factory Car.fromJson(Map<String, dynamic> json) {
+    return Car(
+      id: json['id_vehicle'],
+      plate: json['matricula'],
+      brand: json['marca'] ?? '',
+      model: json['modelo'] ?? '',
+      year: Car.estimateYearFromSpanishPlate(json['matricula']),
+      bastidor: json['bastidor'],
+      tipoMotor: json['tipo_motor'],
+      proximaRevisionFecha: json['proxima_revision_fecha'],
+      kilometrajeEstimadoRevision: json['kilometraje_estimado_revision'],
+    );
+  }
+
 
   // ✅ Método estático
   static int estimateYearFromSpanishPlate(String plate) {
@@ -38,14 +63,5 @@ class Car {
     return 2000;
   }
 
-  factory Car.fromJson(Map<String, dynamic> json) {
-    return Car(
-      id: json['id_vehicle'],
-      plate: json['matricula'],
-      brand: json['marca'] ?? '',
-      model: json['modelo'] ?? '',
-      year: Car.estimateYearFromSpanishPlate(json['matricula']),
-      imageUrl: null,
-    );
-  }
+  
 }

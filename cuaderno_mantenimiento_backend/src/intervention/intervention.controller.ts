@@ -16,7 +16,10 @@ export class InterventionController {
   async findAll() {
     return await this.interventionService.findAll();
   }
-
+   @Get('vehicle/:vehicleId')
+  async getInterventionsByVehicle(@Param('vehicleId') vehicleId: string) {
+    return this.interventionService.findByVehicleId(vehicleId);
+  }
   @Get(':id')
   async findOne(@Param('id') id: string) {
     const intervention = await this.interventionService.findOne(id);
