@@ -1,5 +1,6 @@
 import 'package:cuaderno_mantenimiento_flutter/infrastructure/dtos/create-vehicle-dto.dart';
 import 'package:cuaderno_mantenimiento_flutter/infrastructure/models/car.dart';
+import 'package:cuaderno_mantenimiento_flutter/infrastructure/models/person.dart';
 import 'package:cuaderno_mantenimiento_flutter/providers/car_provider.dart';
 import 'package:cuaderno_mantenimiento_flutter/providers/vehicle_provider.dart';
 import 'package:flutter/material.dart';
@@ -8,8 +9,13 @@ import 'package:go_router/go_router.dart';
 
 class ClientCarsScreen extends StatefulWidget {
   final String clientId;
+  final Person person; // ✅ Añadido
 
-  const ClientCarsScreen({super.key, required this.clientId});
+  const ClientCarsScreen({
+    super.key,
+    required this.clientId,
+    required this.person, // ✅ Añadido
+  });
 
   @override
   State<ClientCarsScreen> createState() => _ClientCarsScreenState();
@@ -97,7 +103,7 @@ class _ClientCarsScreenState extends State<ClientCarsScreen> {
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.pop(),
+          onPressed: () =>  context.push('/admin/clients', extra: widget.person),
         ),
       ),
       floatingActionButton: FloatingActionButton(
@@ -174,7 +180,18 @@ class _ClientCarsScreenState extends State<ClientCarsScreen> {
                 icon: const Icon(Icons.history, color: Colors.teal),
                 tooltip: 'Ver intervenciones realizadas',
                 onPressed: () {
-                  context.push('/intervention/${car.id}');
+                  context.pushNamed(
+                  'interventionScreen',
+                  pathParameters: {
+                    'carId': car.id,
+                  },
+                  extra: {
+                    'clientId': widget.clientId,
+                    'person': widget.person,
+                  },
+                );
+
+
                 },
               ),
             IconButton(
@@ -281,8 +298,7 @@ void _showCreateCarDialog() {
                 _buildTextField(vinController, 'Bastidor'),
                 _buildTextField(engineTypeController, 'Tipo de motor'),
                 _buildTextField(plateController, 'Matrícula'),
-                _buildTextField(nextRevisionDateController, 'Próxima revisión (YYYY-MM-DD)', keyboardType: TextInputType.datetime),
-                _buildTextField(estimatedMileageController, 'Kilometraje estimado revisión', keyboardType: TextInputType.number),
+              
               ],
             ),
           ),

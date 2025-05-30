@@ -82,24 +82,43 @@ class CarProvider {
     }
 
   Future<void> updateCar(String carId, CreateVehicleDto updatedCar) async {
-  final url = 'vehicle/$carId';
-  final data = updatedCar.toJson();
+    final url = 'vehicle/$carId';
+    final data = updatedCar.toJson();
 
 
 
-  try {
-    final response = await _dio.patch(url, data: data);
+    try {
+      final response = await _dio.patch(url, data: data);
 
+    
+      if (response.statusCode != 200) {
+        throw Exception('Error al actualizar el coche');
+      }
+    } catch (e) {
   
-    if (response.statusCode != 200) {
-      throw Exception('Error al actualizar el coche');
+    
     }
-  } catch (e) {
- 
-   
   }
-}
+   Future<void> updateMaintenance(String vehicleId, {
+    required int kilometrajeEstimado,
+    required String proximaRevisionFechaYYYYMMDD,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        '/vehicle/$vehicleId/maintenance',
+        data: {
+          'kilometraje_estimado_revision': kilometrajeEstimado,
+          'proxima_revision_fecha': proximaRevisionFechaYYYYMMDD,
+        },
+      );
 
+      if (response.statusCode != 200) {
+        throw Exception('Error al actualizar el mantenimiento');
+      }
+    } catch (e) {
+      throw Exception('Error al actualizar mantenimiento: $e');
+    }
+  }
 
 
   Future<void> deleteCar(String carId) async {

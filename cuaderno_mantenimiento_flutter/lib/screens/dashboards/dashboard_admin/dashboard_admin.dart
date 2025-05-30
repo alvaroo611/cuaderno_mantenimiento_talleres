@@ -107,7 +107,19 @@ class _AdminDashboardState extends State<AdminDashboard> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             children: [
-              _buildMenuTile(context, 'Gestión de Clientes', Icons.people, '/admin/clients', primaryColor),
+              Card(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 3,
+              child: ListTile(
+                leading: Icon(Icons.people, color: primaryColor),
+                title: const Text('Gestión de Clientes', style: TextStyle(fontWeight: FontWeight.w600)),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () {
+                  context.push('/admin/clients', extra: widget.person);
+                },
+              ),
+            ),
+
               _buildMenuTile(context, 'Gestión de Vehículos', Icons.car_repair, '/admin/vehicles', secondaryColor),
               _buildMenuTile(context, 'Gestión de Intervenciones', Icons.build_circle, '/admin/interventions', primaryColor),
               _buildMenuTile(context, 'Gestión de Usuarios', Icons.verified_user, '/admin/users', secondaryColor),

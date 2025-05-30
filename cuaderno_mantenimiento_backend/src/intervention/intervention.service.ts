@@ -70,6 +70,37 @@ export class InterventionService {
 
   return interventions;
 }
+  async getFullInterventionInfo(interventionId: string) {
+  const intervention = await this.interventionRepository.findOne({
+    where: { id_intervencion: interventionId },
+    relations: ['vehicle', 'details'],
+  });
+
+  if (!intervention) {
+    throw new NotFoundException('Intervention not found');
+  }
+
+  const vehicle = intervention.vehicle;
+
+  return {
+    vehicle: {
+      proximaRevisionFecha: vehicle.proxima_revision_fecha,
+      kilometrajeEstimadoRevision: vehicle.kilometraje_estimado_revision,
+    },
+    intervention: {
+      fecha: intervention.fecha,
+      kilometraje: intervention.kilometraje,
+      tipoIntervencion: intervention.tipo_intervencion,
+      observaciones: intervention.observaciones,
+    },
+    detalles: intervention.details.map((detail) => ({
+      id_intervention_details:detail.id_intervention_details,
+      elemento: detail.elemento,
+      estado: detail.estado,
+      marca: detail.marca,
+    })),
+  };
+}
 
   // Método para obtener una intervención específica
   async findOne(id: string): Promise<Intervention > {

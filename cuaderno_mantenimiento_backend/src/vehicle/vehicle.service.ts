@@ -7,6 +7,7 @@ import { UpdateVehicleDto } from './dto/update-vehicle.dto';
 import { Client } from 'src/client/entities/client.entity';
 import { Intervention } from 'src/intervention/entities/intervention.entity';
 import { InterventionDetails } from 'src/intervention_details/entities/intervention_details.entity';
+import { UpdateVehicleMaintenanceDto } from './dto/update-vehicle-maintenance-dto';
 
 
 
@@ -136,5 +137,30 @@ export class VehicleService {
     }
   }
 
+  // src/vehicle/vehicle.service.ts
+
+async updateMaintenanceFields(
+  id_vehicle: string,
+  updateDto: UpdateVehicleMaintenanceDto,
+) {
+  const vehicle = await this.vehicleRepository.findOne({ where: { id_vehicle } });
+
+  if (!vehicle) {
+    throw new NotFoundException('Vehicle not found.');
+  }
+
+  // Solo actualiza si los campos están presentes
+  if (updateDto.proxima_revision_fecha !== undefined) {
+    vehicle.proxima_revision_fecha = updateDto.proxima_revision_fecha;
+  }
+
+  if (updateDto.kilometraje_estimado_revision !== undefined) {
+    vehicle.kilometraje_estimado_revision = updateDto.kilometraje_estimado_revision;
+  }
+
+  await this.vehicleRepository.save(vehicle);
+
+  return { message: 'Maintenance fields updated successfully.' };
+}
 
 }

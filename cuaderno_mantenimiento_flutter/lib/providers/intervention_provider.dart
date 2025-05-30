@@ -23,6 +23,16 @@ class InterventionProvider {
   }
 }
 
+  Future<void> updateInterventionDetail(CreateInterventionDetailDto detail,String idDetail) async {
+  try {
+    await _dio.patch(
+      '/intervention-details/${idDetail}',
+      data: detail.toJson(),
+    );
+  } catch (e) {
+    throw Exception('Error al actualizar detalle: $e');
+  }
+}
 
   Future<bool> deleteIntervention(String id) async {
     try {
@@ -103,7 +113,10 @@ class InterventionProvider {
     };
   }
 }
-
+  Future<Map<String, dynamic>> fetchFullInterventionInfo(String interventionId) async {
+    final response = await _dio.get('/intervention/$interventionId/full-info');
+    return response.data;
+  }
 
 
   Future<bool> updateIntervention(CreateInterventionDto dto, String id) async {

@@ -3,15 +3,24 @@ import 'dart:convert';
 
 import 'package:cuaderno_mantenimiento_flutter/infrastructure/dtos/create-intervention-dto.dart';
 import 'package:cuaderno_mantenimiento_flutter/infrastructure/models/intervention.dart';
+import 'package:cuaderno_mantenimiento_flutter/infrastructure/models/person.dart';
 import 'package:cuaderno_mantenimiento_flutter/providers/intervention_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 class InterventionManagementScreen extends StatefulWidget {
-  final String carId;  // <-- Parámetro requerido
+  final String carId;
+  final String clientId;
+  final Person person; // ✅ Añadido
 
-  const InterventionManagementScreen({super.key, required this.carId});
+  const InterventionManagementScreen({
+    super.key,
+    required this.carId,
+    required this.clientId,
+    required this.person, // ✅ Añadido
+  });
+
 
   @override
   State<InterventionManagementScreen> createState() =>
@@ -41,18 +50,19 @@ class _InterventionManagementScreenState
     _loadInterventions();
   }
 
-  void _loadInterventions() async {
-    try {
-      final provider = InterventionProvider();
-      final loaded = await provider.fetchInterventions(widget.carId);
-      setState(() {
-        interventions = loaded;
-        isLoading = false;
-      });
-    } catch (e) {
-      print('Error cargando intervenciones: $e');
-    }
+ Future<void> _loadInterventions() async {
+  try {
+    final provider = InterventionProvider();
+    final loaded = await provider.fetchInterventions(widget.carId);
+    setState(() {
+      interventions = loaded;
+      isLoading = false;
+    });
+  } catch (e) {
+    print('Error cargando intervenciones: $e');
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +84,13 @@ class _InterventionManagementScreenState
     centerTitle: true,
     leading: IconButton(
       icon: const Icon(Icons.arrow_back, color: Colors.white),
-      onPressed: () => context.pop(),
+      onPressed: () =>context.pushNamed(
+          'car-list',
+          pathParameters: {
+            'clientId': widget.clientId,
+          },
+          extra: widget.person, // 👈 Aquí
+        ),
     ),
   ),
  floatingActionButton: FloatingActionButton(
@@ -95,14 +111,26 @@ class _InterventionManagementScreenState
 
     if (result['success'] == true) {
       final interventionId = result['interventionId'];
-      final result2 = await context.push('/intervention-details/${widget.carId}/$interventionId');
+      final result2 =  context.pushNamed(
+  'interventionDetails',
+  pathParameters: {
+    'carId': widget.carId,
+    'interventionId': interventionId,
+  },
+  extra: {
+    'clientId': widget.clientId,
+    'person': widget.person,
+  },
+);
 
-    if (result2 == true) {
-      // Aquí recarga la página o actualiza el estado para reflejar la nueva intervención
-      setState(() {
-       _loadInterventions();
-      });
-    }
+
+      if (result2 == true) {
+        setState(() {
+          isLoading = true;
+        });
+        await _loadInterventions(); // espera a que cargue y luego actualiza el estado
+      }
+
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -203,7 +231,19 @@ class _InterventionManagementScreenState
               IconButton(
                 icon: const Icon(Icons.edit, color: Colors.blue),
                 onPressed: () {
-                  _showEditInterventionDialog(interv);
+                  context.pushNamed(
+                    'interventionDetails', // nombre de la ruta
+                    pathParameters: {
+                      'carId': widget.carId,
+                      'interventionId': interv.idIntervencion,
+                    },
+                    extra: {
+                      'clientId': widget.clientId,
+                      'person': widget.person,
+                      'isEditMode': true, // Activar modo edición
+                    },
+                  );
+
                 },
               ),
               IconButton(
@@ -383,113 +423,7 @@ class _InterventionManagementScreenState
     );
   }
 
-  void _showCreateInterventionDialog(String carId) {
-  
-    final kilometrajeController = TextEditingController();
-    final observacionesController = TextEditingController();
-    String tipoIntervencion = 'Revision'; // valor por defecto
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        final screenWidth = MediaQuery.of(context).size.width;
-        double dialogWidth = screenWidth < 600 ? double.infinity : 500;
-
-        return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: Text(
-                'Nueva Intervención',
-                style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
-              ),
-              content: SizedBox(
-                width: dialogWidth,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                    
-                      _buildTextField(
-                        'Kilometraje',
-                        kilometrajeController,
-                        keyboardType: TextInputType.number,
-                      ),
-                      const SizedBox(height: 12),
-                      // Dropdown para tipo intervención
-                      DropdownButtonFormField<String>(
-                        value: tipoIntervencion,
-                        decoration: InputDecoration(
-                          labelText: 'Tipo Intervención',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: 'Revision', child: Text('Revisión')),
-                          DropdownMenuItem(value: 'Cambio de pieza', child: Text('Cambio de pieza')),
-                          DropdownMenuItem(value: 'Reparacion', child: Text('Reparación')),
-                        ],
-                        onChanged: (value) {
-                          if (value != null) {
-                            setStateDialog(() {
-                              tipoIntervencion = value;
-                            });
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      _buildTextField('Observaciones', observacionesController, maxLines: 3),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancelar'),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: secondaryColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: () async {
-                    final dto = CreateInterventionDto(
-                    fecha: DateFormat('yyyy-MM-dd').format(DateTime.now()),
-                    kilometraje: int.tryParse(kilometrajeController.text) ?? 0,
-                    tipoIntervencion: tipoIntervencion,
-                    observaciones: observacionesController.text,
-                    vehicle_id: carId,
-                  );
-
-                   
-
-                    try {
-                      final provider = InterventionProvider();
-                     await provider.createIntervention(dto);
-                  
-                      setState(() {
-                        _loadInterventions();
-                      });
-
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Intervención creada con éxito')),
-                      );
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error al crear intervención: $e')),
-                      );
-                    }
-                  },
-                  child: const Text('Crear'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
+ 
 
 
 

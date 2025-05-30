@@ -1,11 +1,15 @@
 import 'package:cuaderno_mantenimiento_flutter/infrastructure/dtos/create-client-dto.dart';
 import 'package:cuaderno_mantenimiento_flutter/infrastructure/models/client.dart';
+import 'package:cuaderno_mantenimiento_flutter/infrastructure/models/person.dart';
 import 'package:cuaderno_mantenimiento_flutter/providers/client_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 class ClientManagementScreen extends StatefulWidget {
-  const ClientManagementScreen({super.key});
+  final Person person;
+
+  const ClientManagementScreen({super.key, required this.person});
+
 
   @override
   State<ClientManagementScreen> createState() => _ClientManagementScreenState();
@@ -58,7 +62,8 @@ Widget build(BuildContext context) {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            context.pop();
+           context.go('/admin', extra: widget.person);
+
           },
         ),
       ),
@@ -140,7 +145,13 @@ Widget build(BuildContext context) {
               icon: const Icon(Icons.directions_car, color: Colors.teal),
               tooltip: 'Ver coches',
               onPressed: () {
-                context.push('/admin/clients/${client.id}/cars');
+                context.pushNamed(
+                  'car-list',
+                  pathParameters: {
+                    'clientId': client.id,
+                  },
+                  extra: widget.person, // 👈 Aquí
+                );
               },
             ),
 
